@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace FileVerCompare1
+namespace FileVerCompare
 {
     static class Program
     {

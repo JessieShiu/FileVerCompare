@@ -9,43 +9,114 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Configuration;
 
-namespace FileVerCompare1
+namespace FileVerCompare
 {
     public partial class Form1 : Form
     {
 
         List<DataModel> Datas = new List<DataModel>();
+        private string SrcFolder => txtSrcPath.Text.Trim();
+        private string ServerFolder => txtServerPath.Text.Trim();
+        private string BackupFolder => txtBackupPath.Text.Trim();
         public Form1()
         {
             InitializeComponent();
             dgvResult.AutoGenerateColumns = false;
+            txtServerPath.Text = ConfigurationManager.AppSettings["SrvPath"];
+            txtBackupPath.Text = ConfigurationManager.AppSettings["BakPath"];
         }
 
         private void btnSelSrc_Click(object sender, EventArgs e)
         {
-            txtSrcPath.Text = OpenFolderDialog();
+            var path = OpenFolderDialog();
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                txtSrcPath.Text = path;
+            }
+           
         }
 
         private void btnSelDest_Click(object sender, EventArgs e)
         {
-            txtDestPath.Text = OpenFolderDialog();
+            var path = OpenFolderDialog();
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                txtServerPath.Text = path;
+            }
         }
 
-        private void btnExec_Click(object sender, EventArgs e)
+        private void btnSelBk_Click(object sender, EventArgs e)
         {
-            string srcFolder = txtSrcPath.Text.Trim();
-            string destFolder = txtDestPath.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(srcFolder) || string.IsNullOrWhiteSpace(destFolder))
+            var path = OpenFolderDialog();
+            if (!string.IsNullOrWhiteSpace(path))
             {
-                MessageBox.Show("請輸入來源路徑及目的路徑!");
+                txtBackupPath.Text = path;
+            }
+        }
+
+        private void btnCompare_Click(object sender, EventArgs e)
+        {
+            GetData();          
+        }
+
+        private void btnBackup_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(BackupFolder))
+            {
+                MessageBox.Show("請輸入備份路徑!");
                 return;
             }
 
+            if (Datas.Count == 0)
+            {
+                if (!GetData()) return;
+            }
+
+            string topFolder = Path.Combine(BackupFolder, DateTime.Now.ToString("yyyyMMdd"));
+            if (!Directory.Exists(topFolder))
+                Directory.CreateDirectory(topFolder);
+
+            Datas.ForEach(path => {
+
+                string destPath = path.FullPath.Replace(SrcFolder, topFolder);
+
+                if (path.IsFolder)
+                {
+                    Directory.CreateDirectory(destPath);
+                }
+                else
+                {
+                    File.Copy(path.FullPath, destPath, true);
+                }
+            });
+
+            MessageBox.Show("備份完成!");
+        }
+
+        private void btnUpdate_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show("是否確定更新?", "警告",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Warning);
+
+            if (result == DialogResult.No) return;
+
+            MessageBox.Show("建構中!");
+        }
+
+        private bool GetData()
+        {
             Datas.Clear();
 
-            var folders = Directory.GetDirectories(srcFolder, "*", SearchOption.AllDirectories)
+            if (string.IsNullOrWhiteSpace(SrcFolder) || string.IsNullOrWhiteSpace(ServerFolder))
+            {
+                MessageBox.Show("請輸入來源路徑及目的路徑!");
+                return false;
+            }
+
+            var folders = Directory.GetDirectories(SrcFolder, "*", SearchOption.AllDirectories)
                                     .Select(f => new DataModel
                                     {
                                         IsFolder = true,
@@ -53,10 +124,10 @@ namespace FileVerCompare1
                                         FullPath = f,
                                     }).ToList();
 
-            var files = Directory.GetFiles(srcFolder, "*.*", SearchOption.AllDirectories)
+            var files = Directory.GetFiles(SrcFolder, "*.*", SearchOption.AllDirectories)
                                 .Select(f =>
                                 {
-                                    var rtn =  new DataModel
+                                    var rtn = new DataModel
                                     {
                                         IsFolder = false,
                                         Name = $"　{Path.GetFileName(f)}",
@@ -70,10 +141,11 @@ namespace FileVerCompare1
                                         rtn.SrcVers = versInfo;
 
                                         //取目的檔案Version
-                                        string destPath = f.Replace(srcFolder, destFolder);
+                                        string destPath = f.Replace(SrcFolder, ServerFolder);
                                         FileInfo fi = new FileInfo(destPath);
                                         if (File.Exists(destPath))
                                         {
+                                            rtn.IsDestExist = true;
                                             var destVerInfo = GetVersion(destPath, out string destVersion);
                                             if (!string.IsNullOrWhiteSpace(destVersion))
                                             {
@@ -89,6 +161,8 @@ namespace FileVerCompare1
 
             dgvResult.DataSource = Datas;
             dgvResult.Refresh();
+
+            return true;
         }
 
         private Dictionary<string, int> GetVersion(string path, out string version)
@@ -125,9 +199,33 @@ namespace FileVerCompare1
 
         private void dgvResult_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            if (e.ColumnIndex == 3 && e.Value != null)
+            if (Datas.Count == 0) return;
+
+            if (e.ColumnIndex == 1)
             {
                 var data = Datas[e.RowIndex];
+                if (data.IsFolder)
+                    e.Value = Properties.Resources.folder_icon;
+            }            
+            else if (e.ColumnIndex == 3 && e.Value != null)
+            {
+                var data = Datas[e.RowIndex];
+
+                if (!data.IsUpdate)
+                {
+                    e.CellStyle.ForeColor = Color.Red;
+                    dgvResult.Rows[e.RowIndex].Cells[0].Value = false;
+                }
+            }
+        }
+
+        private void dgvResult_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            foreach (DataGridViewRow row in dgvResult.Rows)
+            {
+                var data = Datas[row.Index];
+
+                if (data.IsFolder || !data.IsDestExist) continue;
 
                 if (data.DestVers["Major"] > data.SrcVers["Major"]) data.IsUpdate = false;
                 else
@@ -141,12 +239,6 @@ namespace FileVerCompare1
                             if (data.DestVers["Private"] > data.SrcVers["Private"]) data.IsUpdate = false;
                         }
                     }
-                }
-
-                if (!data.IsUpdate)
-                {
-                    e.CellStyle.ForeColor = Color.Red;
-                    dgvResult.Rows[e.RowIndex].Cells[0].Value = false;
                 }
             }
         }
@@ -162,6 +254,7 @@ namespace FileVerCompare1
         public string DestVer { get; set; }
         public Dictionary<string, int> DestVers { get; set; }
         public bool IsUpdate { get; set; } = true;
+        public bool IsDestExist { get; set; }
     }
 
 }
