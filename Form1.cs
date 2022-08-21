@@ -15,6 +15,7 @@ namespace FileVerCompare
 {
     public partial class Form1 : Form
     {
+        private string NOW => DateTime.Now.ToString("yyyy-MM-dd mm:ss");
 
         List<DataModel> Datas = new List<DataModel>();
         private string SrcFolder => txtSrcPath.Text.Trim();
@@ -74,25 +75,46 @@ namespace FileVerCompare
                 if (!GetData()) return;
             }
 
-            string topFolder = Path.Combine(BackupFolder, DateTime.Now.ToString("yyyyMMdd"));
-            if (!Directory.Exists(topFolder))
-                Directory.CreateDirectory(topFolder);
+            txtMsg.AppendText($"{NOW}開始備份.....{Environment.NewLine}");
 
-            Datas.ForEach(path => {
+            Task.Factory.StartNew(() =>
+            {
+                string topBKFolder = Path.Combine(BackupFolder, DateTime.Now.ToString("yyyyMMdd"));
+                if (!Directory.Exists(topBKFolder))
+                    Directory.CreateDirectory(topBKFolder);
 
-                string destPath = path.FullPath.Replace(SrcFolder, topFolder);
-
-                if (path.IsFolder)
+                Datas.ForEach(path =>
                 {
-                    Directory.CreateDirectory(destPath);
-                }
-                else
-                {
-                    File.Copy(path.FullPath, destPath, true);
-                }
+                    string servPath = path.FullPath.Replace(SrcFolder, ServerFolder);
+                    string bkPath = path.FullPath.Replace(SrcFolder, topBKFolder);
+
+                    try
+                    {
+                        if (path.IsFolder)
+                        {
+                            if (!Directory.Exists(bkPath))
+                                Directory.CreateDirectory(bkPath);
+                        }
+                        else
+                        {
+                            if (File.Exists(servPath))
+                            {
+                                this.BeginInvoke((Action)(()=> { txtMsg.AppendText($"{NOW} COPY {servPath} to {bkPath}{Environment.NewLine}"); }));
+                                File.Copy(servPath, bkPath, true);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        this.BeginInvoke((Action)(() => { txtMsg.AppendText($"錯誤訊息: {ex.Message} {Environment.NewLine}"); }));
+                    }
+
+                });
+
+                this.BeginInvoke((Action)(() => { txtMsg.AppendText($"{NOW} 備份完成... {Environment.NewLine}"); }));
+                MessageBox.Show("備份完成!");
+
             });
-
-            MessageBox.Show("備份完成!");
         }
 
         private void btnUpdate_Click(object sender, EventArgs e)
@@ -227,19 +249,21 @@ namespace FileVerCompare
 
                 if (data.IsFolder || !data.IsDestExist) continue;
 
-                if (data.DestVers["Major"] > data.SrcVers["Major"]) data.IsUpdate = false;
-                else
+                bool update = true;
+                if (data.DestVers["Major"] > data.SrcVers["Major"]) update = false;
+                else if (data.DestVers["Major"] == data.SrcVers["Major"])
                 {
-                    if (data.DestVers["Major"] > data.SrcVers["Major"]) data.IsUpdate = false;
-                    else
+                    if (data.DestVers["Minor"] > data.SrcVers["Minor"]) update = false;
+                    else if (data.DestVers["Minor"] == data.SrcVers["Minor"])
                     {
-                        if (data.DestVers["Build"] > data.SrcVers["Build"]) data.IsUpdate = false;
-                        else
+                        if (data.DestVers["Build"] > data.SrcVers["Build"]) update = false;
+                        else if (data.DestVers["Build"] == data.SrcVers["Build"])
                         {
-                            if (data.DestVers["Private"] > data.SrcVers["Private"]) data.IsUpdate = false;
+                            if (data.DestVers["Private"] > data.SrcVers["Private"]) update = false;
                         }
                     }
                 }
+                data.IsUpdate = update;
             }
         }
     }

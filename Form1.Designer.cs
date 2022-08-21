@@ -35,6 +35,12 @@
             this.txtServerPath = new System.Windows.Forms.TextBox();
             this.txtSrcPath = new System.Windows.Forms.TextBox();
             this.dgvResult = new System.Windows.Forms.DataGridView();
+            this.IsUpdate = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.Image = new System.Windows.Forms.DataGridViewImageColumn();
+            this.FName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.SrcVer = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.DestVer = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.FullPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
@@ -43,12 +49,8 @@
             this.btnBackup = new System.Windows.Forms.Button();
             this.btnUpdate = new System.Windows.Forms.Button();
             this.dataGridViewImageColumn1 = new System.Windows.Forms.DataGridViewImageColumn();
-            this.IsUpdate = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-            this.Image = new System.Windows.Forms.DataGridViewImageColumn();
-            this.FName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.SrcVer = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.DestVer = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.FullPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.txtMsg = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.dgvResult)).BeginInit();
             this.SuspendLayout();
             // 
@@ -114,14 +116,65 @@
             this.SrcVer,
             this.DestVer,
             this.FullPath});
-            this.dgvResult.Location = new System.Drawing.Point(12, 121);
+            this.dgvResult.Location = new System.Drawing.Point(12, 215);
             this.dgvResult.Name = "dgvResult";
             this.dgvResult.RowHeadersVisible = false;
             this.dgvResult.RowTemplate.Height = 24;
-            this.dgvResult.Size = new System.Drawing.Size(984, 596);
+            this.dgvResult.Size = new System.Drawing.Size(984, 502);
             this.dgvResult.TabIndex = 17;
             this.dgvResult.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.dgvResult_CellFormatting);
             this.dgvResult.DataBindingComplete += new System.Windows.Forms.DataGridViewBindingCompleteEventHandler(this.dgvResult_DataBindingComplete);
+            // 
+            // IsUpdate
+            // 
+            this.IsUpdate.DataPropertyName = "IsUpdate";
+            this.IsUpdate.HeaderText = "更新";
+            this.IsUpdate.Name = "IsUpdate";
+            this.IsUpdate.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.IsUpdate.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.IsUpdate.Width = 70;
+            // 
+            // Image
+            // 
+            this.Image.HeaderText = "";
+            this.Image.Image = global::FileVerCompare.Properties.Resources.file_icon;
+            this.Image.ImageLayout = System.Windows.Forms.DataGridViewImageCellLayout.Zoom;
+            this.Image.Name = "Image";
+            this.Image.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Image.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.Image.Width = 50;
+            // 
+            // FName
+            // 
+            this.FName.DataPropertyName = "Name";
+            this.FName.HeaderText = "名稱";
+            this.FName.Name = "FName";
+            this.FName.ReadOnly = true;
+            this.FName.Width = 250;
+            // 
+            // SrcVer
+            // 
+            this.SrcVer.DataPropertyName = "SrcVer";
+            this.SrcVer.HeaderText = "更新包版號";
+            this.SrcVer.Name = "SrcVer";
+            this.SrcVer.ReadOnly = true;
+            this.SrcVer.Width = 150;
+            // 
+            // DestVer
+            // 
+            this.DestVer.DataPropertyName = "DestVer";
+            this.DestVer.HeaderText = "Server版號";
+            this.DestVer.Name = "DestVer";
+            this.DestVer.ReadOnly = true;
+            this.DestVer.Width = 150;
+            // 
+            // FullPath
+            // 
+            this.FullPath.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.FullPath.DataPropertyName = "FullPath";
+            this.FullPath.HeaderText = "FullPath";
+            this.FullPath.Name = "FullPath";
+            this.FullPath.ReadOnly = true;
             // 
             // label1
             // 
@@ -200,62 +253,34 @@
             this.dataGridViewImageColumn1.Resizable = System.Windows.Forms.DataGridViewTriState.True;
             this.dataGridViewImageColumn1.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
             // 
-            // IsUpdate
+            // txtMsg
             // 
-            this.IsUpdate.DataPropertyName = "IsUpdate";
-            this.IsUpdate.HeaderText = "更新";
-            this.IsUpdate.Name = "IsUpdate";
-            this.IsUpdate.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.IsUpdate.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.IsUpdate.Width = 70;
+            this.txtMsg.Font = new System.Drawing.Font("微軟正黑體", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.txtMsg.ForeColor = System.Drawing.Color.Red;
+            this.txtMsg.Location = new System.Drawing.Point(101, 123);
+            this.txtMsg.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.txtMsg.Multiline = true;
+            this.txtMsg.Name = "txtMsg";
+            this.txtMsg.ScrollBars = System.Windows.Forms.ScrollBars.Horizontal;
+            this.txtMsg.Size = new System.Drawing.Size(895, 84);
+            this.txtMsg.TabIndex = 25;
             // 
-            // Image
+            // label4
             // 
-            this.Image.HeaderText = "";
-            this.Image.Image = global::FileVerCompare.Properties.Resources.file_icon;
-            this.Image.ImageLayout = System.Windows.Forms.DataGridViewImageCellLayout.Zoom;
-            this.Image.Name = "Image";
-            this.Image.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Image.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.Image.Width = 50;
-            // 
-            // FName
-            // 
-            this.FName.DataPropertyName = "Name";
-            this.FName.HeaderText = "名稱";
-            this.FName.Name = "FName";
-            this.FName.ReadOnly = true;
-            this.FName.Width = 250;
-            // 
-            // SrcVer
-            // 
-            this.SrcVer.DataPropertyName = "SrcVer";
-            this.SrcVer.HeaderText = "更新包版號";
-            this.SrcVer.Name = "SrcVer";
-            this.SrcVer.ReadOnly = true;
-            this.SrcVer.Width = 150;
-            // 
-            // DestVer
-            // 
-            this.DestVer.DataPropertyName = "DestVer";
-            this.DestVer.HeaderText = "Server版號";
-            this.DestVer.Name = "DestVer";
-            this.DestVer.ReadOnly = true;
-            this.DestVer.Width = 150;
-            // 
-            // FullPath
-            // 
-            this.FullPath.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.FullPath.DataPropertyName = "FullPath";
-            this.FullPath.HeaderText = "FullPath";
-            this.FullPath.Name = "FullPath";
-            this.FullPath.ReadOnly = true;
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(54, 123);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(41, 20);
+            this.label4.TabIndex = 26;
+            this.label4.Text = "訊息";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1008, 729);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.txtMsg);
             this.Controls.Add(this.btnUpdate);
             this.Controls.Add(this.btnBackup);
             this.Controls.Add(this.btnSelBk);
@@ -304,6 +329,8 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn SrcVer;
         private System.Windows.Forms.DataGridViewTextBoxColumn DestVer;
         private System.Windows.Forms.DataGridViewTextBoxColumn FullPath;
+        private System.Windows.Forms.TextBox txtMsg;
+        private System.Windows.Forms.Label label4;
     }
 }
 
