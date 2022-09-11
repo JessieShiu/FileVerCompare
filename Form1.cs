@@ -10,12 +10,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Configuration;
+using System.Reflection;
 
 namespace FileVerCompare
 {
     public partial class Form1 : Form
     {
-        private string NOW => DateTime.Now.ToString("yyyy-MM-dd mm:ss");
+        private string NOW => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
         List<DataModel> Datas = new List<DataModel>();
         private string SrcFolder => txtSrcPath.Text.Trim();
@@ -24,9 +25,14 @@ namespace FileVerCompare
         public Form1()
         {
             InitializeComponent();
+            this.Text = this.Text += " Ver. " + FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
             dgvResult.AutoGenerateColumns = false;
             txtServerPath.Text = ConfigurationManager.AppSettings["SrvPath"];
             txtBackupPath.Text = ConfigurationManager.AppSettings["BakPath"];
+
+            //txtServerPath.Text = @"C:\Users\user\OneDrive\桌面\Dest";
+            //txtSrcPath.Text = @"C:\Users\user\OneDrive\桌面\Source";
+            //txtBackupPath.Text = @"C:\Users\user\OneDrive\桌面";
         }
 
         private void btnSelSrc_Click(object sender, EventArgs e)
@@ -70,6 +76,30 @@ namespace FileVerCompare
                 return;
             }
 
+            if (!Directory.Exists(BackupFolder))
+            {
+                MessageBox.Show("路徑亂打!");
+                return;
+            }
+
+            string topBKFolder = Path.Combine(BackupFolder, DateTime.Now.ToString("yyyyMMdd"));
+            if (!Directory.Exists(topBKFolder))
+                Directory.CreateDirectory(topBKFolder);
+            else
+            {
+                int i = 1;
+                while (true)
+                {
+                    topBKFolder = Path.Combine(BackupFolder, $"{DateTime.Now:yyyyMMdd}_{i}");
+                    if (!Directory.Exists(topBKFolder))
+                    {
+                        Directory.CreateDirectory(topBKFolder);
+                        break;
+                    }
+                    i++;
+                }
+            }
+
             if (Datas.Count == 0)
             {
                 if (!GetData()) return;
@@ -78,11 +108,7 @@ namespace FileVerCompare
             txtMsg.AppendText($"{NOW}開始備份.....{Environment.NewLine}");
 
             Task.Factory.StartNew(() =>
-            {
-                string topBKFolder = Path.Combine(BackupFolder, DateTime.Now.ToString("yyyyMMdd"));
-                if (!Directory.Exists(topBKFolder))
-                    Directory.CreateDirectory(topBKFolder);
-
+            {              
                 Datas.ForEach(path =>
                 {
                     string servPath = path.FullPath.Replace(SrcFolder, ServerFolder);
@@ -99,7 +125,7 @@ namespace FileVerCompare
                         {
                             if (File.Exists(servPath))
                             {
-                                this.BeginInvoke((Action)(()=> { txtMsg.AppendText($"{NOW} COPY {servPath} to {bkPath}{Environment.NewLine}"); }));
+                                this.BeginInvoke((Action)(()=> { txtMsg.AppendText($"　COPY {servPath} to {bkPath}{Environment.NewLine}"); }));
                                 File.Copy(servPath, bkPath, true);
                             }
                         }
@@ -138,6 +164,12 @@ namespace FileVerCompare
                 return false;
             }
 
+            if (!Directory.Exists(SrcFolder) || !Directory.Exists(ServerFolder))
+            {
+                MessageBox.Show("路徑亂打!");
+                return false;
+            }
+
             var folders = Directory.GetDirectories(SrcFolder, "*", SearchOption.AllDirectories)
                                     .Select(f => new DataModel
                                     {
@@ -156,26 +188,21 @@ namespace FileVerCompare
                                         FullPath = f,
                                     };
 
-                                    var versInfo = GetVersion(f, out string version);
-                                    if (!string.IsNullOrWhiteSpace(version))
-                                    {
-                                        rtn.SrcVer = version;
-                                        rtn.SrcVers = versInfo;
+                                    var srcVer = GetVersion(f);
+                                    rtn.SrcVersion = srcVer;
+                                    rtn.SrcVerStr = srcVer?.ToString();
 
-                                        //取目的檔案Version
-                                        string destPath = f.Replace(SrcFolder, ServerFolder);
-                                        FileInfo fi = new FileInfo(destPath);
-                                        if (File.Exists(destPath))
-                                        {
-                                            rtn.IsDestExist = true;
-                                            var destVerInfo = GetVersion(destPath, out string destVersion);
-                                            if (!string.IsNullOrWhiteSpace(destVersion))
-                                            {
-                                                rtn.DestVer = destVersion;
-                                                rtn.DestVers = destVerInfo;
-                                            }
-                                        }
+                                    //取目的檔案Version
+                                    string destPath = f.Replace(SrcFolder, ServerFolder);
+                                    FileInfo fi = new FileInfo(destPath);
+                                    if (File.Exists(destPath))
+                                    {
+                                        rtn.IsDestExist = true;
+                                        var destVer = GetVersion(destPath);
+                                        rtn.DestVersion = destVer;
+                                        rtn.DestVerStr = destVer?.ToString();
                                     }
+
                                     return rtn;
                                 });
 
@@ -187,21 +214,14 @@ namespace FileVerCompare
             return true;
         }
 
-        private Dictionary<string, int> GetVersion(string path, out string version)
+        private Version GetVersion(string path)
         {
-            var result = new Dictionary<string, int>();
-            version = "";
-            var versInfo = FileVersionInfo.GetVersionInfo(path);
-
-            if (!string.IsNullOrEmpty(versInfo.FileVersion))
-                version = $"{versInfo.FileMajorPart}.{versInfo.FileMinorPart}.{versInfo.FileBuildPart}.{versInfo.FilePrivatePart}";
-
-            result.Add("Major", versInfo.FileMajorPart);
-            result.Add("Minor", versInfo.FileMinorPart);
-            result.Add("Build", versInfo.FileBuildPart);
-            result.Add("Private", versInfo.FilePrivatePart);
-
-            return result;
+            var fileVerInfo = FileVersionInfo.GetVersionInfo(path);
+           
+            if (!string.IsNullOrEmpty(fileVerInfo.FileVersion))
+                return new Version(fileVerInfo.FileMajorPart, fileVerInfo.FileMinorPart, fileVerInfo.FileBuildPart, fileVerInfo.ProductPrivatePart);
+            else
+                return null;
         }
 
         public static string OpenFolderDialog(string defaultFolder = "")
@@ -249,20 +269,11 @@ namespace FileVerCompare
 
                 if (data.IsFolder || !data.IsDestExist) continue;
 
-                bool update = true;
-                if (data.DestVers["Major"] > data.SrcVers["Major"]) update = false;
-                else if (data.DestVers["Major"] == data.SrcVers["Major"])
-                {
-                    if (data.DestVers["Minor"] > data.SrcVers["Minor"]) update = false;
-                    else if (data.DestVers["Minor"] == data.SrcVers["Minor"])
-                    {
-                        if (data.DestVers["Build"] > data.SrcVers["Build"]) update = false;
-                        else if (data.DestVers["Build"] == data.SrcVers["Build"])
-                        {
-                            if (data.DestVers["Private"] > data.SrcVers["Private"]) update = false;
-                        }
-                    }
-                }
+                 bool update = true;
+
+                if (data.SrcVersion != null && data.DestVersion != null)
+                    update = data.DestVersion <= data.SrcVersion;
+
                 data.IsUpdate = update;
             }
         }
@@ -273,10 +284,10 @@ namespace FileVerCompare
         public bool IsFolder { get; set; }
         public string Name { get; set; }
         public string FullPath { get; set; }
-        public string SrcVer { get; set; }
-        public Dictionary<string, int> SrcVers { get; set; }
-        public string DestVer { get; set; }
-        public Dictionary<string, int> DestVers { get; set; }
+        public string SrcVerStr { get; set; }
+        public Version SrcVersion { get; set; }
+        public string DestVerStr { get; set; }
+        public Version DestVersion { get; set; }
         public bool IsUpdate { get; set; } = true;
         public bool IsDestExist { get; set; }
     }
